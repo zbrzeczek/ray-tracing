@@ -106,7 +106,15 @@ int main() {
     glfwSetKeyCallback(window, key_callback);
 
     glfwMakeContextCurrent(window);
-    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cout << "GLAD failed\n";
+    }
+
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     // jak czesto te buffory beda sie zmieniac (sa 2 - ten co widac i ten do ktorego renderujesz)
     glfwSwapInterval(1);
 
@@ -118,10 +126,17 @@ int main() {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     GLuint program = createProgram();
+    glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
     while (!glfwWindowShouldClose(window))
     {
+
+        glViewport(0, 0, WIDTH, HEIGHT);
         // narzucanie na piksele tego co juz obliczone  (narazie kropka XD)
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
@@ -133,6 +148,9 @@ int main() {
             }
         }
 
+        glClearColor(0,0,0,1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
     
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
@@ -142,11 +160,6 @@ int main() {
             GL_RGB,
             GL_UNSIGNED_BYTE,
             pixels.data());       
-
-        glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(program);
-    
-        glBindTexture(GL_TEXTURE_2D, texture);
     
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
