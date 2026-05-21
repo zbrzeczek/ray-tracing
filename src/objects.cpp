@@ -1,20 +1,32 @@
+#include "Objects.h"
+
 namespace Raytracer {
 
-class Material {
+// shape 
+Shape::Shape(float x, float y, float z, Material* material)
+    : m_Material(material)
+{
+    m_Position = new Vec3(x, y, z);
+}
 
-};
+Shape::~Shape()
+{
+    delete m_Position;
+    m_Position = nullptr;
+}
 
-class Primitive {
-public:
-	float getLight(){ return m_Light; };
-private:
-    Material m_Material;
-	char* m_Name;
-	bool m_Light;
-};
+Vec3* Shape::getPosition()
+{
+    return m_Position;
+}
 
-class Sphere : public Primitive {
-	
-};
+void Shape::setPosition(Vec3* pos)
+{
+    m_Position = pos;
+}
+
+// Sphere 
+Sphere::Sphere(float x, float y, float z, Material* material, float radius)
+    : Shape(x, y, z, material), m_Radius(radius) {}
 
 }

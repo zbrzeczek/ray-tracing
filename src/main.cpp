@@ -1,15 +1,15 @@
 #include <iostream>
-#include "Vec3.h"
+#include "Objects.h"
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-#define HEIGHT 480
-#define WIDTH 640
+#define RENDER_HEIGHT 480
+#define RENDER_WIDTH 640
 
-// From what i understand it displays byt the "triangles" method the one pixel, dividing it into two small triangles
+// From what i understand it displays byt the "triangles" method the whole window dividing it into two small triangles
 const char* vertexShaderSrc = R"(
 #version 410 core
 
@@ -40,16 +40,6 @@ void main() {
 }
 )";
 
-
-struct Vec {
-    Vec3 *position;
-    float colors[3];
-};
-
-Vec3 pixel(0.0f, 0.0f, 0.0f);
-// Vec example;
-// example.position = pixel;
-// colors = [0.2f, 0.4f, 0.2f];
 
 static void error_callback(int error, const char* description)
 {
@@ -91,12 +81,13 @@ int main() {
     if (!glfwInit())
         exit(EXIT_FAILURE);
 
+    // ustawienie wersji
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Ray-tracer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(RENDER_WIDTH, RENDER_HEIGHT, "Ray-tracer", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -120,7 +111,7 @@ int main() {
 
     // tutaj jest matryca pikseli z czego kazdy ma 3 wartosci r g b 
     // co petle bedzie narzucanie pikseli na podstawie ray tracera
-    std::vector<unsigned char> pixels(WIDTH * HEIGHT * 3);
+    std::vector<unsigned char> pixels(RENDER_WIDTH * RENDER_HEIGHT * 3);
 
     // tworzenie tekstury
     GLuint texture;
@@ -133,20 +124,30 @@ int main() {
     glUseProgram(program);
     glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    glViewport(0, 0, fbWidth, fbHeight);
+
+    // example objects created to test if it even works
+    Raytracer::Material new_material;
+    new_material.color = &Colors::White;
+    new_material.reflectivity = 0.0f;
+    Raytracer::Sphere *s1 = new Raytracer::Sphere(0.0f, 0.0f, 0.0f, &new_material, 1.0f);
+
     while (!glfwWindowShouldClose(window))
     {
-
-        glViewport(0, 0, WIDTH, HEIGHT);
         // narzucanie na piksele tego co juz obliczone  (narazie kropka XD)
-        for (int y = 0; y < HEIGHT; y++) {
-            for (int x = 0; x < WIDTH; x++) {
-                int i = (y * WIDTH + x) * 3;
-        
-                pixels[i + 0] = (unsigned char)(x % 255);   // R gradient
-                pixels[i + 1] = (unsigned char)(y % 255);   // G gradient
-                pixels[i + 2] = 80;         
-            }
+        for (int i = 0; i < pixels.size(); i++) {
+            pixels[i] = 0;
         }
+
+        int h = RENDER_HEIGHT/2;
+        int w = RENDER_WIDTH/2;
+        int i = (h * RENDER_WIDTH + w) * 3;
+        // testowanie tych kolorow wgl
+        pixels[i] = Colors::White.red;
+        pixels[i+1] = Colors::White.green;
+        pixels[i+2] = Colors::White.blue;
 
         glClearColor(0,0,0,1);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -154,8 +155,8 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, texture);
     
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-            WIDTH,
-            HEIGHT,
+            RENDER_WIDTH,
+            RENDER_HEIGHT,
             0,
             GL_RGB,
             GL_UNSIGNED_BYTE,
@@ -171,6 +172,9 @@ int main() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    delete s1;
+    s1 = nullptr;
 
     return 0;
 }

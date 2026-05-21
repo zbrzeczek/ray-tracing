@@ -3,6 +3,8 @@
 
 #include <math.h>
 
+namespace Raytracer {
+    
 class Vec3
 {
 private:
@@ -25,4 +27,5 @@ public:
     // - dot operation
 };
 
+}
 #endif
