@@ -1,8 +1,6 @@
 #pragma once
 #include "Materials.h"
-#include "Vec3.h"
-
-namespace Raytracer {
+#include "vec3.h"
 
 struct Material {
     Colors::Color* color;
@@ -12,14 +10,14 @@ struct Material {
 class Shape {
 protected:
     Material* m_Material;
-    Vec3* m_Position;
+    vec3* m_Position;
     
 public:
     Shape(float x, float y, float z, Material* material);
     virtual ~Shape();
 
-    Vec3* getPosition();
-    void setPosition(Vec3* pos);
+    vec3* getPosition();
+    void setPosition(vec3* pos);
 };
 
 class Sphere : public Shape {
@@ -29,5 +27,3 @@ private:
 public:
     Sphere(float x, float y, float z, Material* material, float radius);
 };
-
-}

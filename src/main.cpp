@@ -1,180 +1,67 @@
 #include <iostream>
 #include "Objects.h"
+#include "color.h"
+#include "ray.h"
+#include "vec3.h"
 #include <vector>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <glad/glad.h>
-
-#define RENDER_HEIGHT 480
-#define RENDER_WIDTH 640
-
-// From what i understand it displays byt the "triangles" method the whole window dividing it into two small triangles
-const char* vertexShaderSrc = R"(
-#version 410 core
-
-out vec2 uv;
-
-void main() {
-    vec2 pos[6] = vec2[](
-        vec2(-1,-1), vec2(1,-1), vec2(1,1), 
-        vec2(-1,-1), vec2(1,1), vec2(-1,1)
-    );
-    vec2 p = pos[gl_VertexID];
-    uv = (p + 1.0) * 0.5;
-    gl_Position = vec4(p, 0, 1);
-}
-)";
-
-// this is the shader for coloring the pixels, here i just pass the colors through texture function
-// bc the color will be calculated not by opengl but raytracer directly
-const char* fragmentShaderSrc = R"(
-#version 410 core
-
-in vec2 uv;
-out vec4 color;
-uniform sampler2D tex;
-
-void main() {
-    color = texture(tex, uv);
-}
-)";
-
-
-static void error_callback(int error, const char* description)
-{
-    fprintf(stderr, "Error: %s\n", description);
-}
-
-// wyjscie z okna
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
-
-GLuint compileShader(GLenum type, const char* src) {
-    GLuint s = glCreateShader(type);
-    glShaderSource(s, 1, &src, NULL);
-    glCompileShader(s);
-    return s;
-}
-
-GLuint createProgram() {
-    GLuint vs = compileShader(GL_VERTEX_SHADER, vertexShaderSrc);
-    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSrc);
-    GLuint p = glCreateProgram();
-
-    glAttachShader(p, vs);
-    glAttachShader(p, fs);
-    glLinkProgram(p);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    return p;
+color ray_color(const ray& r) {
+    vec3 dir = r.get_direction();
+    auto a  = 0.5 * (dir.y() + 1.0);
+    return (1.0-a) * color(1.0,1.0,1.0) + a * color(0.2, 0.4, 1.0);
 }
 
 int main() {
-    glfwSetErrorCallback(error_callback);
+    // Image info
+    int width = 400;
+    auto aspect_ratio = 16.0 / 9.0;
 
-    if (!glfwInit())
-        exit(EXIT_FAILURE);
+    int height = int(width / aspect_ratio);
+    height = (height < 1) ? 1 : height;
 
-    // ustawienie wersji
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    // camera info 
+    auto focal_length = 1.0; // odleglosc kamery od viewport
+    int viewport_height = 2.0;
+    int viewport_width = viewport_height * (double(width)/height);
+    vec3 camera = point3(0.0, 0.0, 0.0);
 
-    GLFWwindow* window = glfwCreateWindow(RENDER_WIDTH, RENDER_HEIGHT, "Ray-tracer", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
+    // Calculate the vectors across the horizontal and down the vertical viewport edges.
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+    
+    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    auto pixel_delta_u = viewport_u / width;
+    auto pixel_delta_v = viewport_v / height;
+    
+    // Calculate the location of the upper left pixel.
+    auto viewport_upper_left = camera - vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+    // tutaj dodajemy polowe bo pixel jako srodek pixela 
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
-    glfwSetKeyCallback(window, key_callback);
-
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "GLAD failed\n";
-    }
-
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // jak czesto te buffory beda sie zmieniac (sa 2 - ten co widac i ten do ktorego renderujesz)
-    glfwSwapInterval(1);
-
-    // tutaj jest matryca pikseli z czego kazdy ma 3 wartosci r g b 
-    // co petle bedzie narzucanie pikseli na podstawie ray tracera
-    std::vector<unsigned char> pixels(RENDER_WIDTH * RENDER_HEIGHT * 3);
-
-    // tworzenie tekstury
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    GLuint program = createProgram();
-    glUseProgram(program);
-    glUniform1i(glGetUniformLocation(program, "tex"), 0);
-
-    int fbWidth, fbHeight;
-    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-    glViewport(0, 0, fbWidth, fbHeight);
+    std::vector<unsigned char> pixels(width * height * 3);
 
     // example objects created to test if it even works
-    Raytracer::Material new_material;
+    Material new_material;
     new_material.color = &Colors::White;
     new_material.reflectivity = 0.0f;
-    Raytracer::Sphere *s1 = new Raytracer::Sphere(0.0f, 0.0f, 0.0f, &new_material, 1.0f);
+    Sphere *s1 = new Sphere(0.0f, 0.0f, 0.0f, &new_material, 1.0f);
 
-    while (!glfwWindowShouldClose(window))
-    {
-        // narzucanie na piksele tego co juz obliczone  (narazie kropka XD)
-        for (int i = 0; i < pixels.size(); i++) {
-            pixels[i] = 0;
+    // Render
+
+    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
+
+    for (int j = 0; j < height; j++) {
+        std::clog << "\rScanlines remaining: " << (height - j) << ' ' << std::flush;
+        for (int i = 0; i < width; i++) {
+            auto next_pixel_centre = pixel00_loc + j * pixel_delta_v + i * pixel_delta_u;
+            // tutaj odejmujemy dwa wektory zeby zobaczyc kierunek swiatla
+            auto ray_direction = next_pixel_centre - camera;
+            ray r(next_pixel_centre, ray_direction);
+
+            color pixel_col = ray_color(r);
+            make_color(std::cout, pixel_col);
         }
-
-        int h = RENDER_HEIGHT/2;
-        int w = RENDER_WIDTH/2;
-        int i = (h * RENDER_WIDTH + w) * 3;
-        // testowanie tych kolorow wgl
-        pixels[i] = Colors::White.red;
-        pixels[i+1] = Colors::White.green;
-        pixels[i+2] = Colors::White.blue;
-
-        glClearColor(0,0,0,1);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-    
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-            RENDER_WIDTH,
-            RENDER_HEIGHT,
-            0,
-            GL_RGB,
-            GL_UNSIGNED_BYTE,
-            pixels.data());       
-    
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        // wymiana bufferow ktore sa wyswietlane
-        glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
-    delete s1;
-    s1 = nullptr;
-
-    return 0;
+    std::clog << "\rDone.                 \n";
 }

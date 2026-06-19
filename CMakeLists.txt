@@ -9,7 +9,6 @@ find_package(glfw3 REQUIRED)
 add_executable(app
     src/main.cpp
     src/Objects.cpp
-    src/Vec3.cpp
     glad/src/glad.c
 )
 
