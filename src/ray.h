@@ -13,7 +13,7 @@ public:
 
     // getery
     point3 get_origin() const { return origin; }
-    point3 get_direction() const { return direction; }
+    vec3 get_direction() const { return direction; }
 
     point3 at(double t) {
         return origin + t * direction;

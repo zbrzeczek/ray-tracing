@@ -2,7 +2,7 @@
 #include "Objects.h"
 #include "color.h"
 #include "ray.h"
-#include "vec3.h"
+#include "Vec3.h"
 #include <vector>
 
 color ray_color(const ray& r) {
@@ -22,8 +22,8 @@ int main() {
 
     // camera info 
     auto focal_length = 1.0; // odleglosc kamery od viewport
-    int viewport_height = 2.0;
-    int viewport_width = viewport_height * (double(width)/height);
+    float viewport_height = 2.0;
+    float viewport_width = viewport_height * (double(width)/height);
     vec3 camera = point3(0.0, 0.0, 0.0);
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
