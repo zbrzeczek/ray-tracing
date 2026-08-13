@@ -7,6 +7,7 @@
 
 color ray_color(const ray& r) {
     vec3 dir = r.get_direction();
+    // tutaj jakas funkcja ktora oblicza kolor raya
     auto a  = 0.5 * (dir.y() + 1.0);
     return (1.0-a) * color(1.0,1.0,1.0) + a * color(0.2, 0.4, 1.0);
 }
