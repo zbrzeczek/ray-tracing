@@ -5,11 +5,19 @@
 #include "vec3.h"
 #include <vector>
 
-color ray_color(const ray& r) {
+color ray_color(const ray& r, float radius) {
     vec3 dir = r.get_direction();
-    // tutaj jakas funkcja ktora oblicza kolor raya
+
+    // tutaj jakas funkcja ktora oblicza kolor raya na podstawie 
+    // a jest normalizowane na podstawie wysokosci wetora ktory jest -1 < y < 1
+    // a jest 0 < a < 1 
     auto a  = 0.5 * (dir.y() + 1.0);
-    return (1.0-a) * color(1.0,1.0,1.0) + a * color(0.2, 0.4, 1.0);
+    if (dir.y() * dir.y() +
+        dir.x() * dir.x() +
+        dir.z() * dir.z() <= radius * radius) {
+            return color(0.0, 0.0, 0.0);
+    }
+    else return (1.0-a) * color(1.0,1.0,1.0) + a * color(0.2, 0.4, 1.0);
 }
 
 int main() {
@@ -59,7 +67,7 @@ int main() {
             auto ray_direction = next_pixel_centre - camera;
             ray r(next_pixel_centre, ray_direction);
 
-            color pixel_col = ray_color(r);
+            color pixel_col = ray_color(r, 1.5);
             make_color(std::cout, pixel_col);
         }
     }
