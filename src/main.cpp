@@ -5,17 +5,42 @@
 #include "vec3.h"
 #include <vector>
 
-color ray_color(const ray& r, float radius) {
-    vec3 dir = r.get_direction();
+bool hit_sphere(const ray& r, Sphere &s){
+    vec3 origin = r.getOrigin();
+    vec3 dir = r.getDirection();
+    vec3 centre = s.getPosition();
+    float radius = s.getRadius();
+
+    vec3 difference_centers = centre - origin;
+    // (Cx - x)^2 + (cy - y)^2 + (cz - z)^2 = r^2
+    // (C-P)(C-P) = r^2
+    // to rownanie trzeba rozwiazac jak 1 roziwazanie to uderza w sciane 
+    // t to niewiadoma
+    //(C-Q)
+    // a = d * d
+    // b = 2d(C-Q)
+    // c = (C-Q)(C-Q)
+    double c = dot(difference_centers, difference_centers) - radius*radius;
+    double a = dot(dir, dir);
+    double b = -2 * dot(dir, difference_centers);   
+
+    auto delta = b*b - 4*a*c;
+    if (delta >= 0){
+        return true;
+    } 
+    else return false;
+
+}
+
+color ray_color(const ray& r, Sphere &s) {
+    vec3 dir = r.getDirection();
 
     // tutaj jakas funkcja ktora oblicza kolor raya na podstawie 
     // a jest normalizowane na podstawie wysokosci wetora ktory jest -1 < y < 1
     // a jest 0 < a < 1 
     auto a  = 0.5 * (dir.y() + 1.0);
-    if (dir.y() * dir.y() +
-        dir.x() * dir.x() +
-        dir.z() * dir.z() <= radius * radius) {
-            return color(0.0, 0.0, 0.0);
+    if (hit_sphere(r, s)) {
+        return s.getMaterial().getColor();
     }
     else return (1.0-a) * color(1.0,1.0,1.0) + a * color(0.2, 0.4, 1.0);
 }
@@ -50,10 +75,8 @@ int main() {
     std::vector<unsigned char> pixels(width * height * 3);
 
     // example objects created to test if it even works
-    Material new_material;
-    new_material.color = &Colors::White;
-    new_material.reflectivity = 0.0f;
-    Sphere *s1 = new Sphere(0.0f, 0.0f, 0.0f, &new_material, 1.0f);
+    Material new_material(color(255,255,255), 1.0f);
+    Sphere s1(0.0f, 0.0f, -1.0f, new_material, 0.2f);
 
     // Render
 
@@ -67,7 +90,7 @@ int main() {
             auto ray_direction = next_pixel_centre - camera;
             ray r(next_pixel_centre, ray_direction);
 
-            color pixel_col = ray_color(r, 1.5);
+            color pixel_col = ray_color(r, s1);
             make_color(std::cout, pixel_col);
         }
     }

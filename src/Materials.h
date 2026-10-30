@@ -1,17 +1,33 @@
+
 #pragma once
 
-namespace Colors {
+#include "vec3.h"
 
-struct Color {
-    int red;
-    int green;
-    int blue;
+using color = vec3;
+
+class Material {
+private:
+    color colorValue;
+    float reflectivity;
+
+public:
+    // Constructor
+    Material(const color& c, float r)
+    : colorValue(c), reflectivity(r) {}
+
+    // Getters
+    color getColor() const {
+        return colorValue;
+    }
+    float getReflectivity() const {
+        return reflectivity;
+    }
+    // Setters
+    void setColor(const color& c) {
+        colorValue = c;
+    }
+    void setReflectivity(float r) {
+        reflectivity = r;
+    }
+
 };
-
-static Color Black = {0,0,0};
-static Color White = {255,255,255};
-static Color Red = {255, 0 ,0};
-static Color Green = {0,255,0};
-static Color Blue = {0,0,255};
-
-}
